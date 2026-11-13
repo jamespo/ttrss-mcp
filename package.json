@@ -1,7 +1,7 @@
 {
   "name": "ttrss-mcp",
   "version": "1.0.0",
-  "description": "tt-rss MCP (Model Context Protocol)，允许通过 AI 助手读写 Tiny Tiny RSS 订阅源",
+  "description": "tt-rss MCP (Model Context Protocol) — read and write Tiny Tiny RSS feeds through an AI assistant",
   "author": "aooiuu <aooiu@qq.com>",
   "type": "module",
   "bin": {

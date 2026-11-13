@@ -13,9 +13,9 @@ const TT_RSS_SID = process.env.TT_RSS_SID;
 
 if (!TT_RSS_URL || !TT_RSS_SID) {
   console.error(
-    "缺少必要的环境变量。请设置 TT_RSS_URL 和 TT_RSS_SID。\n" +
-      "  TT_RSS_URL: tt-rss 实例地址 (如 https://rss.example.com/tt-rss)\n" +
-      "  TT_RSS_SID: tt-rss 会话 ID",
+    "Missing required environment variables. Please set TT_RSS_URL and TT_RSS_SID.\n" +
+      "  TT_RSS_URL: tt-rss instance address (e.g. https://rss.example.com/tt-rss)\n" +
+      "  TT_RSS_SID: tt-rss session ID",
   );
   process.exit(1);
 }
@@ -30,7 +30,7 @@ const server = new McpServer({
 // -- System tool --
 server.tool(
   "get_config",
-  "【仅操作用户的 tt-rss RSS 订阅源】获取 tt-rss 服务器配置信息 (守护进程状态、订阅数等)。当用户需要查看 tt-rss 服务器状态时使用。",
+  "[Operates only on the user's tt-rss RSS feeds] Get tt-rss server configuration (daemon status, number of feeds, etc.). Use when the user wants to check the tt-rss server status.",
   {},
   async () => {
     try {
@@ -40,7 +40,7 @@ server.tool(
       };
     } catch (e: unknown) {
       return {
-        content: [{ type: "text" as const, text: `获取配置失败: ${(e as Error).message}` }],
+        content: [{ type: "text" as const, text: `Failed to get config: ${(e as Error).message}` }],
         isError: true,
       };
     }

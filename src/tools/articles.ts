@@ -13,27 +13,27 @@ function fail(text: string) {
 export function registerArticleTools(server: McpServer, client: TtrssClient) {
   server.tool(
     "get_headlines",
-    "【仅操作用户的 tt-rss RSS 订阅源】获取文章标题列表。当用户明确需要查看 tt-rss 中订阅源的文章列表时使用。特殊 feed_id: -4=全部，-3=最新，-2=已发布，-1=星标，0=已归档。可按 view_mode 过滤未读/星标等。",
+    "[Operates only on the user's tt-rss RSS feeds] Get a list of article headlines. Use when the user explicitly wants to view the article list of a tt-rss feed. Special feed_id values: -4=all, -3=fresh, -2=published, -1=starred, 0=archived. Can filter by view_mode (unread/starred/etc.).",
     {
       feed_id: z
         .number()
         .default(-4)
-        .describe("源 ID。-4=全部，-3=最新，-2=已发布，-1=星标，0=已归档，正数=具体源"),
-      limit: z.number().default(20).describe("返回数量限制 (最大 200)"),
-      skip: z.number().default(0).describe("跳过前 N 篇"),
+        .describe("Feed ID. -4=all, -3=fresh, -2=published, -1=starred, 0=archived, positive=specific feed"),
+      limit: z.number().default(20).describe("Maximum number of results (max 200)"),
+      skip: z.number().default(0).describe("Skip the first N articles"),
       view_mode: z
         .enum(["all_articles", "unread", "adaptive", "marked", "updated"])
         .default("unread")
-        .describe("过滤模式"),
-      is_cat: z.boolean().default(false).describe("feed_id 是否为分类 ID"),
-      show_excerpt: z.boolean().default(true).describe("返回文章摘要"),
-      show_content: z.boolean().default(false).describe("返回文章全文 (较大)"),
-      include_attachments: z.boolean().default(false).describe("包含附件信息"),
+        .describe("Filter mode"),
+      is_cat: z.boolean().default(false).describe("Whether feed_id is a category ID"),
+      show_excerpt: z.boolean().default(true).describe("Return article excerpt"),
+      show_content: z.boolean().default(false).describe("Return full article content (large)"),
+      include_attachments: z.boolean().default(false).describe("Include attachment info"),
       order_by: z
         .enum(["", "feed_dates", "date_reverse"])
         .default("")
-        .describe("排序方式：空=默认，feed_dates=最新优先，date_reverse=最旧优先"),
-      since_id: z.number().optional().describe("只返回 ID 大于此值的文章"),
+        .describe("Sort order: empty=default, feed_dates=newest first, date_reverse=oldest first"),
+      since_id: z.number().optional().describe("Only return articles with ID greater than this value"),
     },
     async (params) => {
       try {
@@ -54,16 +54,16 @@ export function registerArticleTools(server: McpServer, client: TtrssClient) {
         }));
         return ok(JSON.stringify(simplified, null, 2));
       } catch (e: unknown) {
-        return fail(`获取文章列表失败：${(e as Error).message}`);
+        return fail(`Failed to get headlines: ${(e as Error).message}`);
       }
     },
   );
 
   server.tool(
     "get_article",
-    "【仅操作用户的 tt-rss RSS 订阅源】获取一篇或多篇文章的完整内容 (含正文)。当用户明确需要阅读 tt-rss 中订阅源的文章详情时使用。支持逗号分隔的多个 ID。",
+    "[Operates only on the user's tt-rss RSS feeds] Get the full content (including body) of one or more articles. Use when the user explicitly wants to read the details of a tt-rss article. Supports multiple comma-separated IDs.",
     {
-      article_id: z.string().describe("文章 ID，支持逗号分隔的多个 ID (如 '123,456')"),
+      article_id: z.string().describe("Article ID; supports multiple comma-separated IDs (e.g. '123,456')"),
     },
     async ({ article_id }) => {
       try {
@@ -86,95 +86,95 @@ export function registerArticleTools(server: McpServer, client: TtrssClient) {
         }));
         return ok(JSON.stringify(simplified, null, 2));
       } catch (e: unknown) {
-        return fail(`获取文章内容失败：${(e as Error).message}`);
+        return fail(`Failed to get article content: ${(e as Error).message}`);
       }
     },
   );
 
   server.tool(
     "get_unread_count",
-    "【仅操作用户的 tt-rss RSS 订阅源】获取当前未读文章总数。当用户明确需要查看 tt-rss 中未读文章数量时使用。",
+    "[Operates only on the user's tt-rss RSS feeds] Get the current total number of unread articles. Use when the user explicitly wants to check the unread article count in tt-rss.",
     {},
     async () => {
       try {
         const count = await client.getUnread();
-        return ok(`未读文章数：${count}`);
+        return ok(`Unread articles: ${count}`);
       } catch (e: unknown) {
-        return fail(`获取未读数失败：${(e as Error).message}`);
+        return fail(`Failed to get unread count: ${(e as Error).message}`);
       }
     },
   );
 
   server.tool(
     "update_article",
-    "【仅操作用户的 tt-rss RSS 订阅源】更新文章状态。field: 0=星标，1=已发布，2=未读，3=笔记。mode: 0=取消，1=设置，2=切换。当用户明确需要标记 tt-rss 文章状态时使用。",
+    "[Operates only on the user's tt-rss RSS feeds] Update article status. field: 0=starred, 1=published, 2=unread, 3=note. mode: 0=clear, 1=set, 2=toggle. Use when the user explicitly wants to change a tt-rss article's status.",
     {
-      article_ids: z.string().describe("文章 ID 列表，逗号分隔 (如 '123,456')"),
-      field: z.number().min(0).max(3).describe("操作字段：0=星标，1=已发布，2=未读，3=笔记"),
-      mode: z.number().min(0).max(2).describe("操作模式：0=取消，1=设置，2=切换"),
-      data: z.string().optional().describe("当 field=3 (笔记) 时，笔记内容"),
+      article_ids: z.string().describe("Comma-separated list of article IDs (e.g. '123,456')"),
+      field: z.number().min(0).max(3).describe("Field to operate on: 0=starred, 1=published, 2=unread, 3=note"),
+      mode: z.number().min(0).max(2).describe("Operation mode: 0=clear, 1=set, 2=toggle"),
+      data: z.string().optional().describe("Note content, used when field=3 (note)"),
     },
     async (params) => {
       try {
         const result = await client.updateArticle(params);
-        return ok(`操作成功，更新了 ${result.updated} 篇文章`);
+        return ok(`Success: updated ${result.updated} article(s)`);
       } catch (e: unknown) {
-        return fail(`更新文章失败：${(e as Error).message}`);
+        return fail(`Failed to update article: ${(e as Error).message}`);
       }
     },
   );
 
   server.tool(
     "catchup_feed",
-    "【仅操作用户的 tt-rss RSS 订阅源】将订阅源或分类中的所有文章标记为已读。当用户明确需要批量标记 tt-rss 文章为已读时使用。mode 可选：all (全部), 1day, 1week, 2week",
+    "[Operates only on the user's tt-rss RSS feeds] Mark all articles in a feed or category as read. Use when the user explicitly wants to bulk-mark tt-rss articles as read. mode options: all, 1day, 1week, 2week",
     {
-      feed_id: z.number().describe("源或分类 ID"),
-      is_cat: z.boolean().default(false).describe("feed_id 是否为分类 ID"),
-      mode: z.enum(["all", "1day", "1week", "2week"]).default("all").describe("标记范围"),
+      feed_id: z.number().describe("Feed or category ID"),
+      is_cat: z.boolean().default(false).describe("Whether feed_id is a category ID"),
+      mode: z.enum(["all", "1day", "1week", "2week"]).default("all").describe("Range to mark"),
     },
     async (params) => {
       try {
         await client.catchupFeed(params);
-        return ok("标记已读成功");
+        return ok("Marked as read successfully");
       } catch (e: unknown) {
-        return fail(`标记已读失败：${(e as Error).message}`);
+        return fail(`Failed to mark as read: ${(e as Error).message}`);
       }
     },
   );
 
   server.tool(
     "share_to_published",
-    "【仅操作用户的 tt-rss RSS 订阅源】创建一篇文章到已发布 (Published) 源中。当用户明确想要分享文章到 tt-rss 的已发布源时使用。",
+    "[Operates only on the user's tt-rss RSS feeds] Create an article in the Published feed. Use when the user explicitly wants to share an article to the tt-rss Published feed.",
     {
-      title: z.string().describe("文章标题"),
-      url: z.string().url().describe("文章 URL"),
-      content: z.string().describe("文章内容"),
+      title: z.string().describe("Article title"),
+      url: z.string().url().describe("Article URL"),
+      content: z.string().describe("Article content"),
     },
     async (params) => {
       try {
         await client.shareToPublished(params);
-        return ok("分享到已发布成功");
+        return ok("Shared to Published successfully");
       } catch (e: unknown) {
-        return fail(`分享失败：${(e as Error).message}`);
+        return fail(`Failed to share: ${(e as Error).message}`);
       }
     },
   );
 
   server.tool(
     "search_articles",
-    "【仅操作用户的 tt-rss RSS 订阅源】在 tt-rss 订阅源文章中搜索关键词。当用户明确需要搜索自己订阅的 RSS 文章时使用。search_mode: all_feeds=全部源，this_feed=当前源，this_cat=当前分类",
+    "[Operates only on the user's tt-rss RSS feeds] Search for keywords in tt-rss feed articles. Use when the user explicitly wants to search their subscribed RSS articles. search_mode: all_feeds=all feeds, this_feed=current feed, this_cat=current category",
     {
-      search: z.string().describe("搜索关键词"),
-      feed_id: z.number().default(-4).describe("在哪个源中搜索，-4=全部"),
+      search: z.string().describe("Search keyword"),
+      feed_id: z.number().default(-4).describe("Which feed to search in, -4=all"),
       search_mode: z
         .enum(["all_feeds", "this_feed", "this_cat"])
         .default("all_feeds")
-        .describe("搜索范围"),
-      limit: z.number().default(20).describe("返回数量限制"),
+        .describe("Search scope"),
+      limit: z.number().default(20).describe("Maximum number of results"),
       view_mode: z
         .enum(["all_articles", "unread", "adaptive", "marked", "updated"])
         .default("all_articles")
-        .describe("过滤模式"),
+        .describe("Filter mode"),
     },
     async (params) => {
       try {
@@ -197,7 +197,7 @@ export function registerArticleTools(server: McpServer, client: TtrssClient) {
         }));
         return ok(JSON.stringify(simplified, null, 2));
       } catch (e: unknown) {
-        return fail(`搜索失败：${(e as Error).message}`);
+        return fail(`Search failed: ${(e as Error).message}`);
       }
     },
   );

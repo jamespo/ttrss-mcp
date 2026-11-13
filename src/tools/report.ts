@@ -6,15 +6,15 @@ import type { TtrssHeadline } from "../types.js";
 export function registerReportTools(server: McpServer, client: TtrssClient) {
   server.tool(
     "generate_daily_report",
-    "【仅操作用户的 tt-rss RSS 订阅源】生成日报：汇总用户 tt-rss 中近期文章，按分类和订阅源分组输出。当用户明确要求生成 RSS 阅读日报时使用。默认获取未读文章，可指定时间范围。",
+    "[Operates only on the user's tt-rss RSS feeds] Generate a daily report: summarize the user's recent tt-rss articles, grouped by category and feed. Use when the user explicitly asks for an RSS reading digest. By default it fetches unread articles; a time range can be specified.",
     {
-      hours: z.number().default(24).describe("获取最近 N 小时内的文章，默认 24"),
-      limit: z.number().default(200).describe("最多获取的文章数量"),
+      hours: z.number().default(24).describe("Fetch articles from the last N hours, default 24"),
+      limit: z.number().default(200).describe("Maximum number of articles to fetch"),
       view_mode: z
         .enum(["all_articles", "unread", "adaptive", "marked", "updated"])
         .default("all_articles")
-        .describe("过滤模式"),
-      include_content: z.boolean().default(false).describe("是否包含文章摘要"),
+        .describe("Filter mode"),
+      include_content: z.boolean().default(false).describe("Whether to include article excerpts"),
     },
     async (params) => {
       try {
@@ -34,7 +34,7 @@ export function registerReportTools(server: McpServer, client: TtrssClient) {
           return {
             content: [{
               type: "text" as const,
-              text: `过去 ${params.hours} 小时内没有${params.view_mode === "unread" ? "未读" : ""}文章。`,
+              text: `No ${params.view_mode === "unread" ? "unread " : ""}articles in the last ${params.hours} hours.`,
             }],
           };
         }
@@ -44,7 +44,7 @@ export function registerReportTools(server: McpServer, client: TtrssClient) {
         return { content: [{ type: "text" as const, text: report }] };
       } catch (e: unknown) {
         return {
-          content: [{ type: "text" as const, text: `生成日报失败：${(e as Error).message}` }],
+          content: [{ type: "text" as const, text: `Failed to generate daily report: ${(e as Error).message}` }],
           isError: true,
         };
       }
@@ -59,7 +59,7 @@ interface GroupedArticles {
 function groupByFeed(headlines: TtrssHeadline[]): GroupedArticles {
   const groups: GroupedArticles = {};
   for (const h of headlines) {
-    const key = h.feed_title || "未知来源";
+    const key = h.feed_title || "Unknown source";
     if (!groups[key]) groups[key] = [];
     groups[key].push(h);
   }
@@ -78,9 +78,9 @@ function formatReport(
   const feedCount = Object.keys(grouped).length;
 
   const lines: string[] = [
-    `# 日报 (过去 ${hours} 小时)`,
+    `# Daily Report (last ${hours} hours)`,
     "",
-    `共 ${totalArticles} 篇文章，来自 ${feedCount} 个订阅源。`,
+    `${totalArticles} article(s) from ${feedCount} feed(s).`,
     "",
   ];
 
@@ -89,21 +89,20 @@ function formatReport(
   );
 
   for (const [feedTitle, articles] of sortedFeeds) {
-    lines.push(`## ${feedTitle} (${articles.length} 篇)`);
+    lines.push(`## ${feedTitle} (${articles.length})`);
     lines.push("");
 
     const sorted = articles.sort((a, b) => b.updated - a.updated);
 
     for (const article of sorted) {
-      const time = new Date(article.updated * 1000).toLocaleString("zh-CN", {
-        timeZone: "Asia/Shanghai",
+      const time = new Date(article.updated * 1000).toLocaleString("en-US", {
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
       });
       const flags = [
-        article.unread ? "未读" : "",
+        article.unread ? "unread" : "",
         article.marked ? "⭐" : "",
       ]
         .filter(Boolean)
