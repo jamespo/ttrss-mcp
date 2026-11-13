@@ -10,6 +10,7 @@ import type {
 } from "./types.js";
 
 const API_STATUS_OK = 0;
+const REQUEST_TIMEOUT_MS = 15_000;
 
 export class TtrssClientError extends Error {
   constructor(
@@ -36,11 +37,26 @@ export class TtrssClient {
   ): Promise<T> {
     const body = JSON.stringify({ sid: this.sid, op, ...params });
 
-    const response = await fetch(this.apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    });
+    let response: Response;
+    try {
+      response = await fetch(this.apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === "TimeoutError") {
+        throw new TtrssClientError(
+          `Request timed out after ${REQUEST_TIMEOUT_MS}ms`,
+          "TIMEOUT",
+        );
+      }
+      throw new TtrssClientError(
+        `Network error: ${(e as Error).message}`,
+        "NETWORK_ERROR",
+      );
+    }
 
     if (!response.ok) {
       throw new TtrssClientError(

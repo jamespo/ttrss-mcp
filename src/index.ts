@@ -20,6 +20,13 @@ if (!TT_RSS_URL || !TT_RSS_SID) {
   process.exit(1);
 }
 
+if (!/^https:\/\//i.test(TT_RSS_URL)) {
+  console.error(
+    "Warning: TT_RSS_URL does not use https. The session ID (TT_RSS_SID) " +
+      "will be sent in cleartext and can be intercepted. Use an https:// URL.",
+  );
+}
+
 const client = new TtrssClient(TT_RSS_URL, TT_RSS_SID);
 
 const server = new McpServer({
